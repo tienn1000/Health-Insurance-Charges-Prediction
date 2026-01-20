@@ -1,0 +1,283 @@
+---
+title: "DA330 - Final Project Notebook"
+author: "Tien Nguyen"
+output: html_document
+---
+
+## 1. Summary
+
+Health care costs are one of the major concerns of people. A lot of them even struggle to pay for medical expenses. Therefore, health insurance has become a popular health plan to help people afford expensive medical costs. However, the level of medical payments from insurance also depends on many factors. This study will evaluate the correlation between patient personal factors and insurance coverage levels, and predict the amount of insurance payments based on the information on the patient's records.
+
+### Problem Statement
+
+People have some trouble setting appropriate expectations for how much health insurance will cover so that they can have a suitable medical payment plan. The predictive model allows people to estimate their health insurance charges based on their personal profile including gender, bmi, age, smoking status, region and the number of children they have.
+
+## 2. Research Questions
+
+-   Are there any differences in charges by region, age, bmi and gender?
+
+-   Can smoking status affect medical insurance charges?
+
+-   Can people predict expected health insurance payments based on their profile?
+
+### 2.1 Objectives
+
+-   Identify the correlation between personal status and medical insurance charges.
+
+-   Predict expected medical insurance charges based on patient personal information.
+
+### 2.2 Risks and Limitations
+
+-   Underlying medical conditions does not evaluated in the study.
+
+-   The insurance plans used by the patients were not included in the study.
+
+-   Insurance coverage will change depending on time, issues arise and the patient's plan.
+
+-   Other factors affecting insurance coverage costs are limited in this study.
+
+### 2.3 Hypothesis
+
+**H1**: Individual medical insurance payments can be correlated to personal information record to predict estimated charges.
+
+## 3. Data Sources
+
+For this project, a dataset used is collected from the Kaggle website:
+
+[Medical Cost Personal Datasets](https://www.kaggle.com/datasets/mirichoi0218/insurance?resource=download)
+
+### 3.1 Data Attributes
+
+-   age: age of primary beneficiary
+
+-   sex: insurance contractor gender, female, male
+
+-   bmi: Body mass index, providing an understanding of body, weights that are relatively high or low relative to height, objective index of body weight (kg / m \^ 2) using the ratio of height to weight, ideally 18.5 to 24.9
+
+-   children: Number of children covered by health insurance / Number of dependents
+
+-   smoker: Smoking status
+
+-   region: the beneficiary's residential area in the US, northeast, southeast, southwest, northwest.
+
+-   charges: Individual medical costs billed by health insurance
+
+## 4. Exploratory Data Analysis
+
+```{r eval=FALSE}
+#Import the dataset
+
+df <- read.csv("C:/Users/thuyt/OneDrive/Desktop/Data Mining and Predictive Analytics/Final/insurance.csv", sep = ",")
+
+```
+
+```{r eval=FALSE}
+#Load the libraries 
+
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+```
+
+```{r eval=FALSE}
+str(df)
+```
+
+```{r eval=FALSE}
+#Converting character variables to factors
+df <- df %>% mutate_if(is.character,as.factor)
+str(df)
+```
+
+```{r eval=FALSE}
+#Check missing values
+missing_values <- sum(is.na(df)) 
+cat("Total Missing Values: ", missing_values, "\n")
+
+missing_values_by_column <- colSums(is.na(df)) 
+print(missing_values_by_column)
+```
+
+```{r eval=FALSE}
+# Summary statistics for numerical variables
+summary(df[, c("age", "bmi", "charges", "children")])
+
+# Summary for categorical variables
+table(df$region)
+table(df$smoke)
+table(df$sex)
+```
+
+**I. Review average charges by region**
+
+```{r eval=FALSE}
+# Calculate average charges by region 
+avg_charges <- df %>% group_by(region) %>% summarize(avg_charges = mean(charges)) 
+# Create a bar plot 
+ggplot(avg_charges, aes(x = region, y = avg_charges, fill = region)) + geom_bar(stat = "identity") + labs(title = "Average Charges by Region", x = "Region", y = "Average Charges") + theme_minimal()
+                               
+```
+
+**II. Review average charges by gender and smoking status**
+
+```{r eval=FALSE}
+# Calculate average charges by gender
+avg_charges_by_gender_and_smoker <- df %>%
+  group_by(sex, smoker) %>%
+  summarize(avg_charges = mean(charges))
+
+# Create a faceted bar plot
+ggplot(avg_charges_by_gender_and_smoker, aes(x = sex, y = avg_charges, fill = sex)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~ smoker) +
+  labs(title = "Average Charges by Gender and Smoking Status",
+       x = "Gender",
+       y = "Average Charges") +
+  theme_minimal()
+```
+
+**III. Review charges by age and smoking status**
+
+```{r eval=FALSE}
+# Charges vs. Age
+ggplot(df, aes(x = age, y = charges, color = smoker)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) + labs(title = "Age vs Charges by Smoking Status",
+       x = "age",
+       y = "Charges")
+  theme_minimal()
+```
+
+**IV. Review charges by bmi and smoking status**
+
+```{r eval=FALSE}
+# Create a scatter plot with color indicating smoking status
+ggplot(df, aes(x = bmi, y = charges, color = smoker)) +
+  geom_point(size = 1.2) +
+  labs(title = "BMI vs Charges by Smoking Status",
+       x = "BMI",
+       y = "Charges") +
+  theme_minimal()
+```
+
+**IV. Review charges by number of children**
+
+```{r eval=FALSE}
+# Charges vs. No. of Children
+ggplot(df, aes(x = children, y = charges)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) + labs(title = "No. of Children vs Charges",
+       x = "number of children",
+       y = "Charges")
+  theme_minimal()
+```
+
+## 5. Data Preparation
+
+```{r eval=False}
+#Convert categorical variables to intergers
+df$sex <- as.integer(df$sex) 
+df$smoker <- as.integer(df$smoker)
+df$region <- as.integer(df$region)
+```
+
+```{r eval=False}
+# Correlation matrix
+correlation_matrix <- cor(df[, c("age", "bmi", "children", "smoker", "sex", "region", "charges")])
+print(correlation_matrix)
+
+```
+
+### **6.3 Linear regression model**
+
+```{r eval=False}
+#Create linear regression model
+model1 = lm(formula = charges~.,data = df)
+summary(model1)
+```
+
+```{r eval=False}
+#Create linear regression model
+model2 = lm(formula = charges~. -sex -children -region,data = df)
+summary(model2)
+```
+
+### **6.4 Evaluate Features (Random Forest)**
+
+Use Random Forest to identify which features are most significant for predicting estimated charges.
+
+```{r eval=False}
+library(randomForest)
+set.seed(123)
+# Train RF model on full dataset
+rf_model <- randomForest(charges ~ ., data = df, ntree = 100, mtry = 2, importance = TRUE)
+
+```
+
+Display feature importance plot
+
+```{r eval=False}
+# importance(rf_model)
+varImpPlot(rf_model)
+```
+
+Reduce dimensions to independent variables
+
+```{r eval=False}
+df1 <- df[, c("smoker","age","bmi","charges")]
+```
+
+## 7. Predictive Model
+
+**Create training / test data (80/20)**
+
+```{r eval=False}
+
+# Split Dataset (80/20)
+set.seed(123)
+train_indices <- sample(1:nrow(df1), 0.8 * nrow(df1)) 
+train_data <- df[train_indices, ] 
+test_data <- df[-train_indices, ]
+```
+
+### **7.1 Train Random Forest Model**
+
+```{r eval=False}
+
+# Train RF model on training dataset
+model <- randomForest(charges ~ ., data = train_data, ntree = 100, mtry = 2, importance = TRUE)
+
+print(model)
+```
+
+**Evaluate RandomForest Model**
+
+```{r eval=False}
+
+# Evaluate the model
+predictions <- predict(model, test_data)
+results <- data.frame(
+  Actual = test_data$charges,
+  Predicted = predictions
+)
+print(head(results))
+
+```
+
+## 8. Conclusions
+
+The machine learning model using Random Forest can predict the insurance charges with about 84% accuracy based on personal information. Besides, the exploratory data analysis showed the differences between smoking status can affect the medical payments and the differences charges by region, age.
+
+**Challenges encountered\
+**The exploratory data analysis indicates that there are differences of medical insurance charges between regions, however the correlation coefficient between charges and region is very low.
+
+**Learnings**
+
+-   There are significant differences in individual medical charges by smoking status.
+
+-   There are slightly differences in health insurance payments between different regions.
+
+-   The gender does not reflect the amount of health insurance payment.
+
+**Future directions\
+**A new direction on this analysis would be to evaluate other factors including medical conditions to predict health insurance payments. In addition, multiple other machine learning models should be applied to improve the accuracy of prediction.
